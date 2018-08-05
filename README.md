@@ -22,7 +22,7 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+data: {linkage: [{trigger: 'selector', attr: '', prefix: '', matcher: ''}, {...}], 'linkage-opt': 'or', 'linkage-combination': 'hook'}
 
 ## Development
 
