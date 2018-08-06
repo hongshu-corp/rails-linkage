@@ -1,19 +1,22 @@
 has_value = (str) ->
   str != null && str != undefined && str.trim() != ''
 
-combine_filter = (filter_datas, opt)->
-  filter_datas.map (e)->
-    if e.length == 2
-      "[#{e[0]}=#{e[1]}]"
-    else
-      e[0]
-  .join(opt)
-
 transform_linkopt = (opt)->
   if opt != null && opt != undefined && opt.trim().toLowerCase() == 'or'
     ','
   else
     ''
+
+combine_filter = (elements, filter_datas, opt)->
+  filters = filter_datas.map (e)->
+    e.to_filter()
+  filter_opt = transform_linkopt(opt)
+  if filter_opt == ','
+    elements.filter(filters.join(filter_opt))
+  else
+    filters.reduce (elements, filter)->
+      elements.filter(filter)
+    , elements
 
 map_select_options_to_boot_select = (target, options)->
   li_options = $(target.parentElement).find('li')
@@ -29,24 +32,53 @@ all_items = {
     options
 }
 
+trigger_values = {
+  select: (linkage)->
+    [(linkage.prefix||'') + $(linkage.trigger).find('option:selected').attr(linkage.attr||'value')]
+}
+
 filtered_items = {
-  select: (target, filter)->
-    options = $(target).find('option').filter(filter)
+  select: (target, filter, filter_datas)->
+    options = filter($(target).find('option'), filter_datas, target.dataset.linkageOpt)
     if $(target).hasClass('selectpicker')
       options = map_select_options_to_boot_select(target, options)
     options
 }
 
+class ClassMatcher
+  constructor: (@values, @opt)->
+  values: ->
+    @values
+  opt: ->
+    @opt
+  to_filter: ->
+    @values.map (e)->
+      '.'+e
+    .join(transform_linkopt(@opt))
+
+class AttributeMatcher
+  constructor: (@matcher, @values, @opt)->
+  matcher: ->
+    @matcher
+  values: ->
+    @values
+  opt: ->
+    @opt
+  to_filter: ->
+    m = @matcher
+    @values.map (e)->
+      "[#{m}=#{e}]"
+    .join(transform_linkopt(@opt))
+
 hide_and_show = (target, linkages)->
   all_items[target.nodeName.toLowerCase()](target).hide()
   filter_datas = $(linkages).map ->
-    value = (this.prefix||'') + $(this.trigger).find('option:selected').attr(this.attr||'value')
+    values = trigger_values[$(this.trigger)[0].nodeName.toLowerCase()](this)
     if has_value(this.matcher)
-      [[(this.matcher || 'value'), value]]
+      new AttributeMatcher (this.matcher||'value'), values, this.opt
     else
-      [['.' + value]]
-  filter = (window[target.dataset.linkageCombination]||combine_filter)(filter_datas.get(), transform_linkopt(target.dataset.linkageOpt))
-  filtered_items[target.nodeName.toLowerCase()](target, filter).show()
+      new ClassMatcher values, this.opt
+  filtered_items[target.nodeName.toLowerCase()](target, combine_filter, filter_datas.get()).show()
 
 process_each = (target)->
   linkages = JSON.parse(target.dataset.linkage)
@@ -64,13 +96,13 @@ process_each = (target)->
       hide_and_show(target, linkages)
 
 $(document).on 'bind.linkage', ()->
-  $('select').filter ->
-    this.dataset.linkage && !$(this).hasClass('selectpicker')
+  $('*[data-linkage]').filter ->
+    !$(this).hasClass('selectpicker')
   .each ->
     process_each(this)
 
-  $('select').filter ->
-    this.dataset.linkage && $(this).hasClass('selectpicker')
+  $('*[data-linkage]').filter ->
+    $(this).hasClass('selectpicker')
   .on 'loaded.bs.select', (e)->
     process_each(this)
 
