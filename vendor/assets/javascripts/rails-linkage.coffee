@@ -94,6 +94,9 @@ get_context = (selector, contexts, and_then)->
 
 default_target_context = ()->
   {
+    all_children: (target_e, jitems)->
+      children(target_e)
+
     filtered_children: (selector, jitems, filter_datas)->
       filters = filter_datas.map (e)->
         e.to_filter()
@@ -104,6 +107,7 @@ default_target_context = ()->
         filters.reduce (es, filter)->
           es.filter(filter)
         , jitems
+
     keep_children: (selector, jitems)->
       jitems.filter(selector.dataset.linkageKeep)
   }
@@ -113,17 +117,17 @@ default_trigger_context = ()->
     change: 'change'
   }
 
-regist_target_context = (obj...)->
+window.regist_target_context = (obj...)->
   context = Object.assign(default_target_context(), obj...)
   target_contexts.push(context)
   context
 
-regist_trigger_context = (obj...)->
+window.regist_trigger_context = (obj...)->
   context = Object.assign(default_trigger_context(), obj...)
   trigger_contexts.push(context)
   context
 
-regist_context = (obj...)->
+window.regist_context = (obj...)->
   context = Object.assign(default_target_context(), Object.assign(default_trigger_context(), obj...))
   target_contexts.push(context)
   trigger_contexts.push(context)
