@@ -45,6 +45,7 @@ hide_and_show = (target_context, target, linkages)->
       new ClassMatcher values, linkage.opt
 
   (window[target.dataset.linkageCombination]||target_context.filtered_children)(target, target_context.children(target), filter_datas).show()
+  target_context.keep_children(target, target_context.children(target)).show()
 
 process_each = (target_context, target)->
   linkages = JSON.parse(target.dataset.linkage)
@@ -96,6 +97,8 @@ default_target_context = ()->
         filters.reduce (es, filter)->
           es.filter(filter)
         , items
+    keep_children: (selector, items)->
+      items.filter(selector.dataset.linkageKeep)
   }
 
 default_trigger_context = ()->
@@ -154,5 +157,8 @@ select_bs = regist_context(select, {
 
   filtered_children: (selector, items, filter_datas)->
     map_select_options_to_boot_select(selector, select.filtered_children(selector, items, filter_datas))
+
+  keep_children: (selector, items)->
+    map_select_options_to_boot_select(selector, items.filter(selector.dataset.linkageKeep))
 })
 
