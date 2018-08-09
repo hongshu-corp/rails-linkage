@@ -95,7 +95,7 @@ get_context = (selector, contexts, and_then)->
 default_target_context = ()->
   {
     all_children: (target_e, jitems)->
-      children(target_e)
+      this.children(target_e)
 
     filtered_children: (selector, jitems, filter_datas)->
       filters = filter_datas.map (e)->
@@ -171,5 +171,13 @@ select_bs = regist_context(select, {
 
   keep_children: (target_e, jitems)->
     map_select_options_to_boot_select(target_e, jitems.filter(target_e.dataset.linkageKeep))
+})
+
+table_in_rows = regist_target_context({
+  name: 'table_in_rows'
+  selector: '.table-linkage-rows'
+
+  children: (target_e)->
+    $(target_e).find('tbody > tr')
 })
 
