@@ -40,9 +40,9 @@ hide_and_show = (target_context, target_e, linkages)->
       trigger_context.selected_value(trigger_context.selected(linkage.trigger), linkage)
 
     if has_value(linkage.matcher)
-      new AttributeMatcher (linkage.matcher||'value'), values, linkage.opt
+      new AttributeMatcher (linkage.matcher||'value'), values, (linkage.opt||'or')
     else
-      new ClassMatcher values, linkage.opt
+      new ClassMatcher values, (linkage.opt||'or')
 
   (window[target_e.dataset.linkageCombination]||target_context.filtered_children)(target_e, target_context.children(target_e), filter_datas).show()
   target_context.keep_children(target_e, target_context.children(target_e)).show()
