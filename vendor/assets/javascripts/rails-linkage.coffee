@@ -8,7 +8,7 @@ transform_linkopt = (opt)->
     ''
 
 class ClassMatcher
-  constructor: (@values, @opt)->
+  constructor: (@trigger, @values, @opt)->
   values: ->
     @values
   opt: ->
@@ -17,9 +17,11 @@ class ClassMatcher
     @values.map (e)->
       '.'+e
     .join(transform_linkopt(@opt))
+  trigger: ->
+    @trigger
 
 class AttributeMatcher
-  constructor: (@matcher, @values, @opt)->
+  constructor: (@trigger, @matcher, @values, @opt)->
   matcher: ->
     @matcher
   values: ->
@@ -31,21 +33,26 @@ class AttributeMatcher
     @values.map (e)->
       "[#{m}=#{e}]"
     .join(transform_linkopt(@opt))
+  trigger: ->
+    @trigger
 
 hide_and_show = (target_context, target_e, linkages)->
   target_context.all_children(target_e, target_context.children(target_e)).hide()
 
   filter_datas = $(linkages).get().map (linkage)->
     values = get_context linkage.trigger, trigger_contexts, (trigger_context)->
-      trigger_context.selected_value(trigger_context.selected(linkage.trigger), linkage)
+      trigger_context.selected_value(trigger_context.selected(linkage.trigger).filter(linkage.condition||'*'), linkage)
+    if values.length>0
+      if has_value(linkage.matcher)
+        new AttributeMatcher linkage.trigger, (linkage.matcher||'value'), values, (linkage.opt||'or')
+      else
+        new ClassMatcher linkage.trigger, values, (linkage.opt||'or')
+  .filter (e)->
+    e
 
-    if has_value(linkage.matcher)
-      new AttributeMatcher (linkage.matcher||'value'), values, (linkage.opt||'or')
-    else
-      new ClassMatcher values, (linkage.opt||'or')
-
-  (window[target_e.dataset.linkageCombination]||target_context.filtered_children)(target_e, target_context.children(target_e), filter_datas).show()
-  target_context.keep_children(target_e, target_context.children(target_e)).show()
+  if filter_datas.length>0
+    (window[target_e.dataset.linkageCombination]||target_context.filtered_children)(target_e, target_context.children(target_e), filter_datas).show()
+    target_context.keep_children(target_e, target_context.children(target_e)).show()
 
 process_each = (target_context, target_e)->
   linkages = JSON.parse(target_e.dataset.linkage)
@@ -79,11 +86,11 @@ target_contexts = []
 trigger_contexts = []
 
 get_context = (selector, contexts, and_then)->
-  $(contexts).filter ()->
+  context = $(contexts).filter ()->
     $(selector).is(this.selector)
-  .first().map ->
-    and_then this
   .get()[0]
+  if context
+    and_then context
 
 default_target_context = ()->
   {
