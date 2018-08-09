@@ -25,7 +25,7 @@ Or install it yourself as:
 ```ruby
 #html data attributes
 data: {
-  linkage: [{trigger: 'selector', attr: '', prefix: '', matcher: ''}, {...}],
+  linkage: [{trigger: 'selector', attr: '', prefix: '', matcher: '', condition: 'selector to ignore trigger value'}, {...}],
   'linkage-opt': 'or',
   'linkage-combination': 'hook',
   'linkage-keep': 'keep selector'
