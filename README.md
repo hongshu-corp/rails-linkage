@@ -25,10 +25,13 @@ Or install it yourself as:
 ```ruby
 #html data attributes
 data: {
-  linkage: [{trigger: 'selector', attr: '', prefix: '', matcher: '', condition: 'selector to ignore trigger value'}, {...}],
-  'linkage-opt': 'or',
-  'linkage-combination': 'hook',
-  'linkage-keep': 'keep selector'
+  linkage: {
+    triggers: [{selector: 'selector', attr: '', prefix: '', matcher: '', condition: 'selector to ignore trigger value'}, {...}],
+    opt: 'or',
+    combination: 'hook to combine trigger value for filter',
+    keep: 'selector for show additional'
+    children: 'target children elements selector for default context'
+  },
 }
 
 ```

@@ -36,39 +36,39 @@ class AttributeMatcher
   trigger: ->
     @trigger
 
-hide_and_show = (target_context, target_e, linkages)->
-  target_context.all_children(target_e, target_context.children(target_e)).hide()
+hide_and_show = (target_context, target_e, linkage_args)->
+  target_context.all_children(target_e, target_context.children(target_e, linkage_args)).hide()
 
-  filter_datas = $(linkages).get().map (linkage)->
-    values = get_context linkage.trigger, trigger_contexts, (trigger_context)->
-      trigger_context.selected_value(trigger_context.selected(linkage.trigger).filter(linkage.condition||'*'), linkage)
+  filter_datas = $(linkage_args.triggers).get().map (linkage)->
+    values = get_context linkage.selector, trigger_contexts, (trigger_context)->
+      trigger_context.selected_value(trigger_context.selected(linkage.selector).filter(linkage.condition||'*'), linkage)
     if values.length>0
       if has_value(linkage.matcher)
-        new AttributeMatcher linkage.trigger, (linkage.matcher||'value'), values, (linkage.opt||'or')
+        new AttributeMatcher linkage.selector, (linkage.matcher||'value'), values, (linkage.opt||'or')
       else
-        new ClassMatcher linkage.trigger, values, (linkage.opt||'or')
+        new ClassMatcher linkage.selector, values, (linkage.opt||'or')
   .filter (e)->
     e
 
   if filter_datas.length>0
-    (window[target_e.dataset.linkageCombination]||target_context.filtered_children)(target_e, target_context.children(target_e), filter_datas).show()
-    target_context.keep_children(target_e, target_context.children(target_e)).show()
+    (window[linkage_args.combination]||target_context.filtered_children)(target_e, linkage_args, target_context.children(target_e, linkage_args), filter_datas).show()
+    target_context.keep_children(target_e, linkage_args, target_context.children(target_e, linkage_args)).show()
 
 process_each = (target_context, target_e)->
-  linkages = JSON.parse(target_e.dataset.linkage)
-  if !Array.isArray(linkages)
-    linkages = [linkages]
+  linkage_args = JSON.parse(target_e.dataset.linkage)
+  if !Array.isArray(linkage_args.triggers)
+    linkage_args.triggers = [linkage_args.triggers]
 
-  hide_and_show(target_context, target_e, linkages)
+  hide_and_show(target_context, target_e, linkage_args)
 
-  linkages.forEach (linkage)->
-    if(!linkage.trigger)
-      console.error('Miss attribute trigger')
+  linkage_args.triggers.forEach (linkage)->
+    if(!linkage.selector)
+      console.error('Miss attribute selector')
       console.error(linkage)
 
-    get_context linkage.trigger, trigger_contexts, (trigger_context)->
-      $(linkage.trigger).on trigger_context.change, ()->
-        hide_and_show(target_context, target_e, linkages)
+    get_context linkage.selector, trigger_contexts, (trigger_context)->
+      $(linkage.selector).on trigger_context.change, ()->
+        hide_and_show(target_context, target_e, linkage_args)
 
 $(document).on 'bind.linkage', ()->
   $('*[data-linkage]').get().forEach (target_e)->
@@ -95,12 +95,12 @@ get_context = (selector, contexts, and_then)->
 default_target_context = ()->
   {
     all_children: (target_e, jitems)->
-      this.children(target_e)
+      jitems
 
-    filtered_children: (selector, jitems, filter_datas)->
+    filtered_children: (selector, linkage_args, jitems, filter_datas)->
       filters = filter_datas.map (e)->
         e.to_filter()
-      filter_opt = transform_linkopt(selector.dataset.linkageOpt)
+      filter_opt = transform_linkopt(linkage_args.opt)
       if filter_opt == ','
         jitems.filter(filters.join(filter_opt))
       else
@@ -108,8 +108,8 @@ default_target_context = ()->
           es.filter(filter)
         , jitems
 
-    keep_children: (selector, jitems)->
-      jitems.filter(selector.dataset.linkageKeep)
+    keep_children: (selector, linkage_args, jitems)->
+      jitems.filter(linkage_args.keep)
   }
 
 default_trigger_context = ()->
@@ -119,25 +119,36 @@ default_trigger_context = ()->
 
 window.regist_target_context = (obj...)->
   context = Object.assign(default_target_context(), obj...)
-  target_contexts.push(context)
+  target_contexts.unshift(context)
   context
 
 window.regist_trigger_context = (obj...)->
   context = Object.assign(default_trigger_context(), obj...)
-  trigger_contexts.push(context)
+  trigger_contexts.unshift(context)
   context
 
 window.regist_context = (obj...)->
   context = Object.assign(default_target_context(), Object.assign(default_trigger_context(), obj...))
-  target_contexts.push(context)
-  trigger_contexts.push(context)
+  target_contexts.unshift(context)
+  trigger_contexts.unshift(context)
   context
+
+default_context = regist_context({
+  name: 'default'
+  selector: '*'
+  children: (target_e, linkage_args)->
+    if linkage_args.children
+      $(target_e).find(linkage_args.children)
+    else
+      console.error('Miss attribute data-linkage-children')
+      console.error(target_e)
+})
 
 select = regist_context({
   name: 'select'
   selector: 'select:not(.selectpicker)'
 
-  children: (target_e)->
+  children: (target_e, linkage_args)->
     $(target_e).find('option')
 
   all_children: (target_e, jitems)->
@@ -166,18 +177,18 @@ select_bs = regist_context(select, {
   all_children: (target_e, jitems)->
     map_select_options_to_boot_select(target_e, select.all_children(target_e, jitems))
 
-  filtered_children: (target_e, jitems, filter_datas)->
-    map_select_options_to_boot_select(target_e, select.filtered_children(target_e, jitems, filter_datas))
+  filtered_children: (target_e, linkage_args, jitems, filter_datas)->
+    map_select_options_to_boot_select(target_e, select.filtered_children(target_e, linkage_args, jitems, filter_datas))
 
-  keep_children: (target_e, jitems)->
-    map_select_options_to_boot_select(target_e, jitems.filter(target_e.dataset.linkageKeep))
+  keep_children: (target_e, linkage_args, jitems)->
+    map_select_options_to_boot_select(target_e, select.keep_children(target_e, linkage_args, jitems))
 })
 
 table_in_rows = regist_target_context({
   name: 'table_in_rows'
   selector: '.table-linkage-rows'
 
-  children: (target_e)->
+  children: (target_e, linkage_args)->
     $(target_e).find('tbody > tr')
 })
 
