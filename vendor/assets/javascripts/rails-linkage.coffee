@@ -36,6 +36,30 @@ class AttributeMatcher
   trigger: ->
     @trigger
 
+class TextMatcher
+  constructor: (@trigger, @values, @opt)->
+  opt: ->
+    @opt
+  values: ->
+    @values
+  to_filter: ->
+    values = @values
+    opt = @opt
+    ()->
+      jitem = $(this)
+      res = if transform_linkopt(opt) == ','
+        values.reduce (value, text)->
+          value || jitem.text() == text
+        , false
+      else
+        values.reduce (value, text)->
+          value && jitem.text() == text
+        , true
+      res
+
+  trigger: ->
+    @trigger
+
 hide_and_show = (target_context, target_e, linkage_args)->
   target_context.all_children(target_e, target_context.children(target_e, linkage_args)).hide()
 
@@ -44,7 +68,10 @@ hide_and_show = (target_context, target_e, linkage_args)->
       trigger_context.selected_value(trigger_context.selected(linkage.selector).filter(linkage.condition||'*'), linkage)
     if values.length>0
       if has_value(linkage.matcher)
-        new AttributeMatcher linkage.selector, (linkage.matcher||'value'), values, (linkage.opt||'or')
+        if linkage.matcher.toLowerCase() == 'text'
+          new TextMatcher linkage.selector, values, (linkage.opt||'or')
+        else
+          new AttributeMatcher linkage.selector, (linkage.matcher||'value'), values, (linkage.opt||'or')
       else
         new ClassMatcher linkage.selector, values, (linkage.opt||'or')
   .filter (e)->
@@ -100,9 +127,12 @@ default_target_context = ()->
     filtered_children: (selector, linkage_args, jitems, filter_datas)->
       filters = filter_datas.map (e)->
         e.to_filter()
-      filter_opt = transform_linkopt(linkage_args.opt)
-      if filter_opt == ','
-        jitems.filter(filters.join(filter_opt))
+      if transform_linkopt(linkage_args.opt) == ','
+        jitems.filter ->
+          jitem = $(this)
+          filters.reduce (value, filter)->
+            value || jitem.is(filter)
+          , false
       else
         filters.reduce (es, filter)->
           es.filter(filter)
@@ -160,7 +190,7 @@ select = regist_context({
 
   selected_value: (jitems, linkage)->
     jitems.map ->
-      [[(linkage.prefix||'') + $(this).attr(linkage.attr||'value')]]
+      (linkage.prefix||'') + $(this).attr(linkage.attr||'value')
     .get()
 })
 
@@ -190,5 +220,32 @@ table_in_rows = regist_target_context({
 
   children: (target_e, linkage_args)->
     $(target_e).find('tbody > tr')
+})
+
+table_in_cols = regist_target_context({
+  name: 'table_in_cols'
+  selector: '.table-linkage-cols'
+
+  children: (target_e, linkage_args)->
+    $(target_e).find('th:not(.no-linkage)')
+
+  all_children: (target_e, jitems)->
+    all_th = $(target_e).find('th')
+    th_indexs = jitems.map ->
+      all_th.index this
+
+    th_indexs.get().reduce (jouts, index)->
+      $.merge(jouts, $(target_e).find('tbody td:nth-child('+(index+1)+')'))
+    , jitems
+
+  filtered_children: (target_e, linkage_args, jitems, filter_datas)->
+    all_th = $(target_e).find('th')
+    selected_ths = default_target_context().filtered_children(target_e, linkage_args, jitems, filter_datas)
+    th_indexs = selected_ths.map ->
+      all_th.index this
+
+    th_indexs.get().reduce (jouts, index)->
+      $.merge(jouts, $(target_e).find('tbody td:nth-child('+(index+1)+')'))
+    , selected_ths
 })
 
