@@ -32,8 +32,8 @@ class AttributeMatcher
       "[#{m}=#{e}]"
     .join(transform_linkopt(@opt))
 
-hide_and_show = (target_context, target, linkages)->
-  target_context.all_children(target, target_context.children(target)).hide()
+hide_and_show = (target_context, target_e, linkages)->
+  target_context.all_children(target_e, target_context.children(target_e)).hide()
 
   filter_datas = $(linkages).get().map (linkage)->
     values = get_context linkage.trigger, trigger_contexts, (trigger_context)->
@@ -44,15 +44,15 @@ hide_and_show = (target_context, target, linkages)->
     else
       new ClassMatcher values, linkage.opt
 
-  (window[target.dataset.linkageCombination]||target_context.filtered_children)(target, target_context.children(target), filter_datas).show()
-  target_context.keep_children(target, target_context.children(target)).show()
+  (window[target_e.dataset.linkageCombination]||target_context.filtered_children)(target_e, target_context.children(target_e), filter_datas).show()
+  target_context.keep_children(target_e, target_context.children(target_e)).show()
 
-process_each = (target_context, target)->
-  linkages = JSON.parse(target.dataset.linkage)
+process_each = (target_context, target_e)->
+  linkages = JSON.parse(target_e.dataset.linkage)
   if !Array.isArray(linkages)
     linkages = [linkages]
 
-  hide_and_show(target_context, target, linkages)
+  hide_and_show(target_context, target_e, linkages)
 
   linkages.forEach (linkage)->
     if(!linkage.trigger)
@@ -61,16 +61,16 @@ process_each = (target_context, target)->
 
     get_context linkage.trigger, trigger_contexts, (trigger_context)->
       $(linkage.trigger).on trigger_context.change, ()->
-        hide_and_show(target_context, target, linkages)
+        hide_and_show(target_context, target_e, linkages)
 
 $(document).on 'bind.linkage', ()->
-  $('*[data-linkage]').get().forEach (target)->
-    get_context target, target_contexts, (target_context)->
+  $('*[data-linkage]').get().forEach (target_e)->
+    get_context target_e, target_contexts, (target_context)->
       if(target_context.load)
-        $(target).on target_context.load, ()->
-          process_each(target_context, target)
+        $(target_e).on target_context.load, ()->
+          process_each(target_context, target_e)
       else
-        process_each(target_context, target)
+        process_each(target_context, target_e)
 
 $(document).ready ->
   $(document).trigger('bind.linkage')
@@ -87,18 +87,18 @@ get_context = (selector, contexts, and_then)->
 
 default_target_context = ()->
   {
-    filtered_children: (selector, items, filter_datas)->
+    filtered_children: (selector, jitems, filter_datas)->
       filters = filter_datas.map (e)->
         e.to_filter()
       filter_opt = transform_linkopt(selector.dataset.linkageOpt)
       if filter_opt == ','
-        items.filter(filters.join(filter_opt))
+        jitems.filter(filters.join(filter_opt))
       else
         filters.reduce (es, filter)->
           es.filter(filter)
-        , items
-    keep_children: (selector, items)->
-      items.filter(selector.dataset.linkageKeep)
+        , jitems
+    keep_children: (selector, jitems)->
+      jitems.filter(selector.dataset.linkageKeep)
   }
 
 default_trigger_context = ()->
@@ -126,24 +126,24 @@ select = regist_context({
   name: 'select'
   selector: 'select:not(.selectpicker)'
 
-  children: (selector)->
-    $(selector).find('option')
+  children: (target_e)->
+    $(target_e).find('option')
 
-  all_children: (selector, items)->
-    items.filter ->
+  all_children: (target_e, jitems)->
+    jitems.filter ->
       has_value($(this).attr('value'))
 
-  selected: (selector)->
-    $(selector).find('option:selected')
+  selected: (target_e)->
+    $(target_e).find('option:selected')
 
-  selected_value: (jarray, linkage)->
-    jarray.map ->
+  selected_value: (jitems, linkage)->
+    jitems.map ->
       [[(linkage.prefix||'') + $(this).attr(linkage.attr||'value')]]
     .get()
 })
 
-map_select_options_to_boot_select = (target, options)->
-  li_options = $(target.parentElement).find('li')
+map_select_options_to_boot_select = (target_e, options)->
+  li_options = $(target_e.parentElement).find('li')
   options.map ->
     li_options[$(this).index()]
 
@@ -152,13 +152,13 @@ select_bs = regist_context(select, {
   selector: 'select.selectpicker'
   load: 'loaded.bs.select'
 
-  all_children: (selector, items)->
-    map_select_options_to_boot_select(selector, select.all_children(selector, items))
+  all_children: (target_e, jitems)->
+    map_select_options_to_boot_select(target_e, select.all_children(target_e, jitems))
 
-  filtered_children: (selector, items, filter_datas)->
-    map_select_options_to_boot_select(selector, select.filtered_children(selector, items, filter_datas))
+  filtered_children: (target_e, jitems, filter_datas)->
+    map_select_options_to_boot_select(target_e, select.filtered_children(target_e, jitems, filter_datas))
 
-  keep_children: (selector, items)->
-    map_select_options_to_boot_select(selector, items.filter(selector.dataset.linkageKeep))
+  keep_children: (target_e, jitems)->
+    map_select_options_to_boot_select(target_e, jitems.filter(target_e.dataset.linkageKeep))
 })
 

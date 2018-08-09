@@ -22,7 +22,57 @@ Or install it yourself as:
 
 ## Usage
 
-data: {linkage: [{trigger: 'selector', attr: '', prefix: '', matcher: ''}, {...}], 'linkage-opt': 'or', 'linkage-combination': 'hook'}
+```ruby
+#html data attributes
+data: {
+  linkage: [{trigger: 'selector', attr: '', prefix: '', matcher: ''}, {...}],
+  'linkage-opt': 'or',
+  'linkage-combination': 'hook',
+  'linkage-keep': 'keep selector'
+}
+
+```
+
+```coffescript
+#context object
+select = {
+  name: 'select'
+  selector: 'select:not(.selectpicker)'
+
+  #return jquery array
+  children: (target_e)->
+    $(target_e).find('option')
+
+  all_children: (target_e, items)->
+    items.filter ->
+      has_value($(this).attr('value'))
+
+  filtered_children: (target_e, items, filter_datas)->
+    filters = filter_datas.map (e)->
+      e.to_filter()
+    filter_opt = transform_linkopt(target_e.dataset.linkageOpt)
+    if filter_opt == ','
+      items.filter(filters.join(filter_opt))
+    else
+      filters.reduce (es, filter)->
+        es.filter(filter)
+      , items
+  keep_children: (target_e, items)->
+    items.filter(target_e.dataset.linkageKeep)
+
+  selected: (target_e)->
+    $(target_e).find('option:selected')
+
+  #return js array
+  selected_value: (jitems, linkage)->
+    jitems.map ->
+      [[(linkage.prefix||'') + $(this).attr(linkage.attr||'value')]]
+    .get()
+
+  change: 'change'
+}
+
+```
 
 ## Development
 
