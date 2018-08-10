@@ -97,14 +97,22 @@ process_each = (target_context, target_e)->
       $(linkage.selector).on trigger_context.change, ()->
         hide_and_show(target_context, target_e, linkage_args)
 
-$(document).on 'bind.linkage', ()->
-  $('*[data-linkage]').get().forEach (target_e)->
+$(document).on 'bind.linkage', (event, target_e)->
+  if(target_e)
     get_context target_e, target_contexts, (target_context)->
       if(target_context.load)
         $(target_e).on target_context.load, ()->
           process_each(target_context, target_e)
       else
         process_each(target_context, target_e)
+  else
+    $('*[data-linkage]').get().forEach (target_e)->
+      get_context target_e, target_contexts, (target_context)->
+        if(target_context.load)
+          $(target_e).on target_context.load, ()->
+            process_each(target_context, target_e)
+        else
+          process_each(target_context, target_e)
 
 $(document).ready ->
   $(document).trigger('bind.linkage')
