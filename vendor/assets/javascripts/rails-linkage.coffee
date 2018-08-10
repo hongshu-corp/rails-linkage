@@ -227,7 +227,14 @@ table_in_rows = regist_target_context({
   selector: '.table-linkage-rows'
 
   children: (target_e, linkage_args)->
-    $(target_e).find('tbody > tr')
+    if $(target_e).is('tbody')
+      $(target_e).find('tr')
+    else
+      trs = $(target_e).find('tbody > tr')
+      if trs.length==0
+        $(target_e).find('tr').slice(1)
+      else
+        trs
 })
 
 table_in_cols = regist_target_context({
@@ -235,7 +242,7 @@ table_in_cols = regist_target_context({
   selector: '.table-linkage-cols'
 
   children: (target_e, linkage_args)->
-    $(target_e).find('th:not(.no-linkage)')
+    $(target_e).find('th').filter(':not(.linkage-ignore)')
 
   all_children: (target_e, jitems)->
     all_th = $(target_e).find('th')
@@ -243,7 +250,7 @@ table_in_cols = regist_target_context({
       all_th.index this
 
     th_indexs.get().reduce (jouts, index)->
-      $.merge(jouts, $(target_e).find('tbody td:nth-child('+(index+1)+')'))
+      $.merge(jouts, $(target_e).find('tbody td').filter(':nth-child('+(index+1)+')'))
     , jitems
 
   filtered_children: (target_e, linkage_args, jitems, filter_datas)->
@@ -253,7 +260,7 @@ table_in_cols = regist_target_context({
       all_th.index this
 
     th_indexs.get().reduce (jouts, index)->
-      $.merge(jouts, $(target_e).find('tbody td:nth-child('+(index+1)+')'))
+      $.merge(jouts, $(target_e).find('tbody td').filter(':nth-child('+(index+1)+')'))
     , selected_ths
 })
 
