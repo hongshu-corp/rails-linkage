@@ -61,7 +61,7 @@ class TextMatcher
     @trigger
 
 hide_and_show = (target_context, target_e, linkage_args)->
-  target_context.all_children(target_e, target_context.children(target_e, linkage_args)).hide()
+  target_context.all_children(target_e, linkage_args, target_context.children(target_e, linkage_args)).hide()
 
   filter_datas = $(linkage_args.triggers).get().map (linkage)->
     values = get_context linkage.selector, trigger_contexts, (trigger_context)->
@@ -129,8 +129,8 @@ get_context = (selector, contexts, and_then)->
 
 default_target_context = ()->
   {
-    all_children: (target_e, jitems)->
-      jitems
+    all_children: (target_e, linkage_args, jitems)->
+      jitems.filter(linkage_args.all_children || '*')
 
     filtered_children: (selector, linkage_args, jitems, filter_datas)->
       filters = filter_datas.map (e)->
@@ -187,11 +187,10 @@ select = regist_context({
   selector: 'select:not(.selectpicker)'
 
   children: (target_e, linkage_args)->
-    $(target_e).find('option')
+    $(target_e).find(linkage_args.children || 'option')
 
-  all_children: (target_e, jitems)->
-    jitems.filter ->
-      has_value($(this).attr('value'))
+  all_children: (target_e, linkage_args, jitems)->
+    jitems.filter(linkage_args.all_children || ':not([value=""])')
 
   selected: (target_e)->
     $(target_e).find('option:selected')
@@ -212,8 +211,8 @@ select_bs = regist_context(select, {
   selector: 'select.selectpicker'
   load: 'loaded.bs.select'
 
-  all_children: (target_e, jitems)->
-    map_select_options_to_boot_select(target_e, select.all_children(target_e, jitems))
+  all_children: (target_e, linkage_args, jitems)->
+    map_select_options_to_boot_select(target_e, select.all_children(target_e, linkage_args, jitems))
 
   filtered_children: (target_e, linkage_args, jitems, filter_datas)->
     map_select_options_to_boot_select(target_e, select.filtered_children(target_e, linkage_args, jitems, filter_datas))
@@ -227,40 +226,59 @@ table_in_rows = regist_target_context({
   selector: '.table-linkage-rows'
 
   children: (target_e, linkage_args)->
-    if $(target_e).is('tbody')
-      $(target_e).find('tr')
+    if linkage_args.children
+      $(target_e).find(linkage.children)
     else
-      trs = $(target_e).find('tbody > tr')
-      if trs.length==0
-        $(target_e).find('tr').slice(1)
+      if $(target_e).is('tbody')
+        $(target_e).find('tr')
       else
-        trs
+        trs = $(target_e).find('tbody > tr')
+        if trs.length==0
+          $(target_e).find('tr').slice(1)
+        else
+          trs
 })
+
+#headers cells
+target_all_headers = (target_e, linkage_args)->
+  if linkage_args.headers
+    $(target_e).find(linkage_args.headers)
+  else
+    $(target_e).find('tr').first().find('th,td')
+
+target_all_cells = (target_e, linkage_args)->
+  if linkage_args.cells
+    $(target_e).find(linkage_args.cells)
+  else
+    if $(target_e).find('tbody').length
+      $(target_e).find('tbody td')
+    else
+      $(target_e).find('tr').slice(1).find('td')
 
 table_in_cols = regist_target_context({
   name: 'table_in_cols'
   selector: '.table-linkage-cols'
 
   children: (target_e, linkage_args)->
-    $(target_e).find('th').filter(':not(.linkage-ignore)')
+    target_all_headers(target_e, linkage_args).filter(':not(.linkage-ignore)')
 
-  all_children: (target_e, jitems)->
-    all_th = $(target_e).find('th')
+  all_children: (target_e, linkage_args, jitems)->
+    all_th = target_all_headers(target_e, linkage_args)
     th_indexs = jitems.map ->
       all_th.index this
 
     th_indexs.get().reduce (jouts, index)->
-      $.merge(jouts, $(target_e).find('tbody td').filter(':nth-child('+(index+1)+')'))
+      $.merge(jouts, target_all_cells(target_e, linkage_args).filter(':nth-child('+(index+1)+')'))
     , jitems
 
   filtered_children: (target_e, linkage_args, jitems, filter_datas)->
-    all_th = $(target_e).find('th')
+    all_th = target_all_headers(target_e, linkage_args)
     selected_ths = default_target_context().filtered_children(target_e, linkage_args, jitems, filter_datas)
     th_indexs = selected_ths.map ->
       all_th.index this
 
     th_indexs.get().reduce (jouts, index)->
-      $.merge(jouts, $(target_e).find('tbody td').filter(':nth-child('+(index+1)+')'))
+      $.merge(jouts, target_all_cells(target_e, linkage_args).filter(':nth-child('+(index+1)+')'))
     , selected_ths
 })
 

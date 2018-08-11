@@ -31,6 +31,9 @@ data: {
     combination: 'hook to combine trigger value for filter',
     keep: 'selector for show additional'
     children: 'target children elements selector for default context'
+    all_children: 'target all children elements selector for default context'
+    headers: 'for table_in_cols only; ignore children'
+    cells: 'for table_in_cols only; ignore children'
   },
 }
 
